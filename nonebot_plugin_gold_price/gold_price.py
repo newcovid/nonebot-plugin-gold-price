@@ -14,53 +14,62 @@ from matplotlib.ticker import FixedLocator
 import requests
 from .config import plugin_config
 
+# 插件元数据，用于描述插件的基本信息
 __plugin_meta__ = PluginMetadata(
-    name="金价查询",
-    description="查询实时金价及价格走势",
-    usage="/goldprice 或 /金价",
+    name="金价查询",  # 插件名称
+    description="查询实时金价及价格走势",  # 插件描述
+    usage="/goldprice 或 /金价",  # 插件使用方法
 )
 
+# 注册一个命令处理器，支持命令 "/goldprice" 和 "/金价"
 gold_price_cmd = on_command("goldprice", aliases={"金价"}, priority=5)
 
+# API接口地址，用于获取黄金价格数据
 API_URL = "https://v3.alapi.cn/api/gold"
 
 
 class DBManager:
-    """数据库管理类"""
+    """数据库管理类，用于管理SQLite数据库连接和操作"""
 
     def __init__(self):
+        # 数据库文件路径
         self.db_path = os.path.join(os.path.dirname(__file__), "gold_price.db")
 
     def __enter__(self):
+        # 进入上下文时，建立数据库连接并执行迁移
         self.conn = sqlite3.connect(self.db_path)
         self._migrate()
         return self.conn
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        # 退出上下文时，关闭数据库连接
         self.conn.close()
 
     def _migrate(self):
-        """数据库迁移方法"""
+        """数据库迁移方法，确保表结构存在"""
         cursor = self.conn.cursor()
         cursor.execute(
             """CREATE TABLE IF NOT EXISTS gold_prices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            price REAL NOT NULL,
-            unit TEXT NOT NULL,
-            time TEXT NOT NULL,
-            market TEXT NOT NULL,
-            symbol TEXT NOT NULL
+            id INTEGER PRIMARY KEY AUTOINCREMENT,  # 自增主键
+            price REAL NOT NULL,  # 黄金价格
+            unit TEXT NOT NULL,  # 单位
+            time TEXT NOT NULL,  # 时间戳
+            market TEXT NOT NULL,  # 市场名称
+            symbol TEXT NOT NULL  # 品种符号
         )"""
         )
         self.conn.commit()
 
 
 async def fetch_market_data(market: str):
-    """获取指定市场数据"""
+    """获取指定市场的黄金价格数据"""
+    # 检查是否配置了API Token
     if not plugin_config.gold_api_token:
         return "API_TOKEN未配置"
+    # 等待指定的间隔时间
     await asyncio.sleep(plugin_config.gold_api_interval)
     try:
+        # 发起HTTP请求获取数据
         response = requests.get(
             API_URL,
             params={"token": plugin_config.gold_api_token, "market": market},
@@ -68,12 +77,15 @@ async def fetch_market_data(market: str):
         )
         data = response.json()
 
+        # 检查API返回的状态码
         if data.get("code") != 200:
             return f"{market} API错误: {data.get('msg', '未知错误')}"
 
+        # 根据市场选择目标品种符号
         target_symbol = "SH_AuTD" if market == "SH" else "Au"
         for item in data.get("data", []):
             if item.get("symbol") == target_symbol:
+                # 返回目标品种的相关数据
                 return {
                     "market": market,
                     "symbol": item["symbol"],
@@ -83,47 +95,49 @@ async def fetch_market_data(market: str):
                 }
         return f"{market} 未找到目标品种"
     except Exception as e:
+        # 捕获异常并返回错误信息
         return f"{market} 请求失败: {str(e)}"
 
 
 def save_price_record(conn, data):
-    """存储价格记录"""
+    """存储黄金价格记录到数据库"""
     if not isinstance(data, dict):
         return
     cursor = conn.cursor()
     cursor.execute(
         "INSERT INTO gold_prices (price, unit, time, market, symbol) VALUES (?, ?, ?, ?, ?)",
         (
-            data["buy_price"],
-            "元/克",
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            data["market"],
-            data["symbol"],
+            data["buy_price"],  # 买入价格
+            "元/克",  # 单位
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # 当前时间
+            data["market"],  # 市场名称
+            data["symbol"],  # 品种符号
         ),
     )
     conn.commit()
 
 
 def get_history_data(conn, market, days):
-    """获取指定市场历史数据"""
+    """获取指定市场的历史价格数据"""
     cursor = conn.cursor()
-    end = datetime.now()
-    start = end - timedelta(days=days)
+    end = datetime.now()  # 当前时间
+    start = end - timedelta(days=days)  # 起始时间
     cursor.execute(
         "SELECT price, time FROM gold_prices "
         "WHERE market = ? AND time BETWEEN ? AND ? "
         "ORDER BY time ASC",
         (
             market,
-            start.strftime("%Y-%m-%d 00:00:00"),
-            end.strftime("%Y-%m-%d 23:59:59"),
+            start.strftime("%Y-%m-%d 00:00:00"),  # 起始时间格式化
+            end.strftime("%Y-%m-%d 23:59:59"),  # 结束时间格式化
         ),
     )
     return cursor.fetchall()
 
 
 def generate_chart(data_dict, filename, days):
-    """生成双市场走势图"""
+    """生成黄金价格走势图"""
+    # 设置字体和图形参数
     plt.rcParams["font.sans-serif"] = ["MiSans"]
     plt.rcParams["axes.unicode_minus"] = False
     plt.figure(figsize=(12, 6))
@@ -203,7 +217,7 @@ def generate_chart(data_dict, filename, days):
 
 
 async def send_price_report(conn, sh_data, lf_data, bot: Bot, days, group_id=None):
-    """发送完整报告"""
+    """发送黄金价格报告到指定群组"""
     valid_data = {}
     if isinstance(sh_data, dict):
         valid_data["上海黄金交易所"] = sh_data
@@ -259,7 +273,7 @@ async def send_price_report(conn, sh_data, lf_data, bot: Bot, days, group_id=Non
 
 @gold_price_cmd.handle()
 async def handle_query(event: GroupMessageEvent, args: Message = CommandArg()):
-    """处理查询命令"""
+    """处理用户查询命令"""
     if not plugin_config.gold_api_token:
         await gold_price_cmd.finish("请配置API_TOKEN！")
     arg = args.extract_plain_text().strip()
@@ -305,7 +319,7 @@ async def handle_query(event: GroupMessageEvent, args: Message = CommandArg()):
     id="daily_report",
 )
 async def daily_report():
-    """优化后的定时任务"""
+    """定时任务：每日推送黄金价格报告"""
     if not plugin_config.gold_api_token or not plugin_config.gold_target_groups:
         return
 

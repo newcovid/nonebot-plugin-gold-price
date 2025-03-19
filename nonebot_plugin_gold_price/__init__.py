@@ -1,6 +1,5 @@
-
 from nonebot.plugin import PluginMetadata
-from .config import Config
+from .config import GoldPriceConfig
 from .gold_price import *
 
 __plugin_meta__ = PluginMetadata(
@@ -9,7 +8,6 @@ __plugin_meta__ = PluginMetadata(
     usage="/goldprice x天; /金价 x天;  /金价 x年",
     type="application",
     homepage="https://github.com/newcovid/nonebot-plugin-gold-price",
-    config=Config,
+    config=GoldPriceConfig,
     supported_adapters={"~onebot.v11"},
-
 )

@@ -9,14 +9,6 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "GPL-3.0" }
 keywords = ["nonebot", "gold", "finance", "analysis"]
-classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-]
 dependencies = [
     "nonebot2>=2.0.0",
     "nonebot-adapter-onebot>=2.3.0",
@@ -31,9 +23,6 @@ Homepage = "https://github.com/newcovid/nonebot-plugin-gold-price"
 Documentation = "https://github.com/newcovid/nonebot-plugin-gold-price#readme"
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["nonebot_plugin_gold_price"]
-include-package-data = true

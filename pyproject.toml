@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-gold-price"
-version = "0.1.1"
+version = "0.1.2"
 description = "用于查询实时金价、绘制历史金价的NoneBot2插件"
 authors = [
     { name = "newcovid", email = "280310454@qq.com" },

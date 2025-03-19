@@ -4,10 +4,12 @@ import asyncio
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from nonebot import on_command, get_bot
+from nonebot import on_command, get_bot, require
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
 from nonebot.plugin import PluginMetadata
+
+require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Bot
 from matplotlib.ticker import FixedLocator

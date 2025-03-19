@@ -26,3 +26,5 @@ Documentation = "https://github.com/newcovid/nonebot-plugin-gold-price#readme"
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["nonebot_plugin_gold_price"]

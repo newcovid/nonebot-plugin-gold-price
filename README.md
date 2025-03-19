@@ -1,14 +1,14 @@
 <div align="center">
-  <a href="https://v2.nonebot.dev/store"><img src="https://github.com/A-kirami/nonebot-plugin-gold-price/blob/resources/nbp_logo.png" width="180" height="180" alt="NoneBotPluginLogo"></a>
+  <a href="https://v2.nonebot.dev/store"><img src="https://github.com/A-kirami/nonebot-plugin-template/blob/resources/nbp_logo.png" width="180" height="180" alt="NoneBotPluginLogo"></a>
   <br>
-  <p><img src="https://github.com/A-kirami/nonebot-plugin-gold-price/blob/resources/NoneBotPlugin.svg" width="240" alt="NoneBotPluginText"></p>
+  <p><img src="https://github.com/A-kirami/nonebot-plugin-template/blob/resources/NoneBotPlugin.svg" width="240" alt="NoneBotPluginText"></p>
 </div>
 
 <div align="center">
 
 # nonebot-plugin-gold-price
 
-_✨ NoneBot 插件简单描述 ✨_
+_✨ 查询实时金价 ✨_
 
 
 <a href="./LICENSE">
@@ -21,46 +21,6 @@ _✨ NoneBot 插件简单描述 ✨_
 
 </div>
 
-这是一个 nonebot2 插件项目的模板库, 你可以直接使用本模板创建你的 nonebot2 插件项目的仓库
-
-<details open>
-<summary>模板库使用方法</summary>
-
-1. 点击 [![start-course](https://user-images.githubusercontent.com/1221423/235727646-4a590299-ffe5-480d-8cd5-8194ea184546.svg)](https://github.com/new?template_newcovid=A-kirami&template_name=nonebot-plugin-gold-price&newcovid=%40me&name=nonebot-plugin-&visibility=public) 创建仓库
-2. 在创建好的新仓库中, 在 "Add file" 菜单中选择 "Create new file", 在新文件名处输入`LICENSE`, 此时在右侧会出现一个 "Choose a license template" 按钮, 点击此按钮选择开源协议模板, 然后在最下方提交新文件到主分支
-3. 全局替换`newcovid`为仓库所有者ID; 全局替换`nonebot-plugin-gold-price`为插件名; 全局替换`nonebot_plugin_gold_price`为包名; 修改 python 徽标中的版本为你插件的运行所需版本
-4. 修改 README 中的插件名和插件描述, 并在下方填充相应的内容
-
-</details>
-
-> [!NOTE]
-> 模板库中自带了一个发布工作流, 你可以使用此工作流自动发布你的插件到 pypi
-
-<details>
-<summary>配置发布工作流</summary>
-
-1. 前往 https://pypi.org/manage/account/#api-tokens 并创建一个新的 API 令牌。创建成功后不要关闭页面，不然你将无法再次查看此令牌。
-2. 在单独的浏览器选项卡或窗口中，打开 [Actions secrets and variables](./settings/secrets/actions) 页面。你也可以在 Settings - Secrets and variables - Actions 中找到此页面。
-3. 点击 New repository secret 按钮，创建一个名为 `PYPI_API_TOKEN` 的新令牌，并从第一步复制粘贴令牌。
-
-</details>
-
-> [!IMPORTANT]
-> 这个发布工作流需要 pyproject.toml 文件, 并且只支持 [PEP 621](https://peps.python.org/pep-0621/) 标准的 pyproject.toml 文件
-
-<details>
-<summary>触发发布工作流</summary>
-从本地推送任意 tag 即可触发。
-
-创建 tag:
-
-    git tag <tag_name>
-
-推送本地所有 tag:
-
-    git push origin --tags
-
-</details>
 
 ## 📖 介绍
 
@@ -113,14 +73,23 @@ _✨ NoneBot 插件简单描述 ✨_
 
 | 配置项 | 必填 | 默认值 | 说明 |
 |:-----:|:----:|:----:|:----:|
-| 配置项1 | 是 | 无 | 配置说明 |
-| 配置项2 | 否 | 无 | 配置说明 |
+| gold_api_token | 是 | 无 | 金价查询的API令牌 |
+| gold_api_interval | 否 | 1 | API请求间隔(秒) |
+| gold_default_days | 否 | 30 | 默认查询历史天数 |
+| gold_threshold_high | 否 | 800 | 上预警阈值 |
+| gold_threshold_low | 否 | 650 | 下预警阈值 |
+| gold_target_groups | 否 | 无 | 定时推送的群号列表，例["123", "456"] |
+| gold_schedule_hour | 否 | 18 | 定时任务的小时 |
+| gold_schedule_minute | 否 | 30 | 定时任务的分钟 |
 
 ## 🎉 使用
 ### 指令表
 | 指令 | 权限 | 需要@ | 范围 | 说明 |
 |:-----:|:----:|:----:|:----:|:----:|
-| 指令1 | 主人 | 否 | 私聊 | 指令说明 |
-| 指令2 | 群员 | 是 | 群聊 | 指令说明 |
+| 金价 | 群员 | 否 | 群聊 | 查询实时金价，并返回默认查询历史天数的价格折线图 |
+| 金价 x天 | 群员 | 否 | 群聊 | 查询实时金价，并返回历史x天的价格折线图 |
+| 金价 x年 | 群员 | 否 | 群聊 | 查询实时金价，并返回历史x年的价格折线图，可为浮点数，例0.1 |
 ### 效果图
-如果有效果图的话
+![image](https://github.com/user-attachments/assets/3d872928-4541-4d0e-bb96-1d7e2b30f1a9)
+![37abd486af68cbbd1e492adb19c6200d](https://github.com/user-attachments/assets/fde5059b-d71b-4755-9b02-2d4f4e8561c2)
+

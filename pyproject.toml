@@ -19,7 +19,7 @@ classifiers = [
 ]
 dependencies = [
     "nonebot2>=2.0.0",
-    "nonebot-adapter-onebot>=11.3.0",
+    "nonebot-adapter-onebot>=2.3.0",
     "requests>=2.28.0",
     "matplotlib>=3.6.0",
     "nonebot-plugin-apscheduler>=0.3.0",

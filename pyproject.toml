@@ -35,5 +35,5 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["gold_price_plugin"]
+packages = ["nonebot_plugin_gold_price"]
 include-package-data = true

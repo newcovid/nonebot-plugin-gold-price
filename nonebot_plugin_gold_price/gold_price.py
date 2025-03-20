@@ -1,5 +1,4 @@
 import sqlite3
-import os
 import asyncio
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
@@ -10,7 +9,9 @@ from nonebot.params import CommandArg
 from nonebot.plugin import PluginMetadata
 
 require("nonebot_plugin_apscheduler")
+require("nonebot_plugin_localstore")  # 声明依赖
 from nonebot_plugin_apscheduler import scheduler
+import nonebot_plugin_localstore as store  # 导入localstore
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Bot
 from matplotlib.ticker import FixedLocator
 import requests
@@ -35,7 +36,7 @@ class DBManager:
 
     def __init__(self):
         # 数据库文件路径
-        self.db_path = os.path.join(os.path.dirname(__file__), "gold_price.db")
+        self.db_path = str(store.get_plugin_data_file("gold_price.db"))
 
     def __enter__(self):
         # 进入上下文时，建立数据库连接并执行迁移
@@ -52,12 +53,12 @@ class DBManager:
         cursor = self.conn.cursor()
         cursor.execute(
             """CREATE TABLE IF NOT EXISTS gold_prices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,  # 自增主键
-            price REAL NOT NULL,  # 黄金价格
-            unit TEXT NOT NULL,  # 单位
-            time TEXT NOT NULL,  # 时间戳
-            market TEXT NOT NULL,  # 市场名称
-            symbol TEXT NOT NULL  # 品种符号
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            price REAL NOT NULL,
+            unit TEXT NOT NULL,
+            time TEXT NOT NULL,
+            market TEXT NOT NULL,
+            symbol TEXT NOT NULL
         )"""
         )
         self.conn.commit()
@@ -233,7 +234,7 @@ async def send_price_report(conn, sh_data, lf_data, bot: Bot, days, group_id=Non
             prices, timestamps = zip(*history)
             chart_data[market_name] = (prices, timestamps)
 
-    chart_path = os.path.join(os.path.dirname(__file__), "gold_chart.png")
+    chart_path = str(store.get_plugin_cache_file("gold_chart.png"))
     if chart_data:
         generate_chart(chart_data, chart_path, days)
 
@@ -341,7 +342,7 @@ async def daily_report():
         # 只在有有效数据时进行推送
         if valid_data:
             # 生成统一消息内容
-            chart_path = os.path.join(os.path.dirname(__file__), "gold_chart.png")
+            chart_path = str(store.get_plugin_cache_file("gold_chart.png"))
             days = plugin_config.gold_default_days
             generate_chart_data = {}
 

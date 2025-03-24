@@ -7,6 +7,7 @@ from nonebot import on_command, get_bot, require
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
 from nonebot.plugin import PluginMetadata
+import aiohttp
 
 require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_localstore")  # 声明依赖
@@ -14,7 +15,6 @@ from nonebot_plugin_apscheduler import scheduler
 import nonebot_plugin_localstore as store  # 导入localstore
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Bot
 from matplotlib.ticker import FixedLocator
-import requests
 from .config import plugin_config
 
 # 插件元数据，用于描述插件的基本信息
@@ -69,18 +69,13 @@ async def fetch_market_data(market: str):
     # 检查是否配置了API Token
     if not plugin_config.gold_api_token:
         return "API_TOKEN未配置"
-    # 等待指定的间隔时间
-    await asyncio.sleep(plugin_config.gold_api_interval)
+        # 等待指定的间隔时间
     try:
-        # 发起HTTP请求获取数据
-        response = requests.get(
-            API_URL,
-            params={"token": plugin_config.gold_api_token, "market": market},
-            timeout=10,
-        )
-        data = response.json()
+        params = {"token": plugin_config.gold_api_token, "market": market}
+        async with aiohttp.ClientSession() as session:
+            async with session.get(API_URL, params=params, timeout=10) as response:
+                data = await response.json()
 
-        # 检查API返回的状态码
         if data.get("code") != 200:
             return f"{market} API错误: {data.get('msg', '未知错误')}"
 
@@ -296,7 +291,9 @@ async def handle_query(event: GroupMessageEvent, args: Message = CommandArg()):
 
     bot = get_bot()
     with DBManager() as conn:
+        # 并发获取数据
         sh_data = await fetch_market_data("SH")
+        await asyncio.sleep(plugin_config.gold_api_interval)  # 等待间隔
         lf_data = await fetch_market_data("LF")
 
         errors = []
@@ -328,9 +325,10 @@ async def daily_report():
 
     bot = get_bot()
     with DBManager() as conn:
-        # 单次数据获取
-        sh_data = await fetch_market_data("SH")
-        lf_data = await fetch_market_data("LF")
+        # 并发获取数据
+        sh_data, lf_data = await asyncio.gather(
+            fetch_market_data("SH"), fetch_market_data("LF")
+        )
 
         # 统一保存数据
         valid_data = []

@@ -326,9 +326,9 @@ async def daily_report():
     bot = get_bot()
     with DBManager() as conn:
         # 并发获取数据
-        sh_data, lf_data = await asyncio.gather(
-            fetch_market_data("SH"), fetch_market_data("LF")
-        )
+        sh_data = await fetch_market_data("SH")
+        await asyncio.sleep(plugin_config.gold_api_interval)  # 等待间隔
+        lf_data = await fetch_market_data("LF")
 
         # 统一保存数据
         valid_data = []

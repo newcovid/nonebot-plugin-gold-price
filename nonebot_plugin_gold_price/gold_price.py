@@ -98,19 +98,43 @@ async def fetch_market_data(market: str):
 
 
 def save_price_record(conn, data):
-    """存储黄金价格记录到数据库"""
+    """存储黄金价格记录到数据库（自动处理0值并避免重复无效记录）"""
     if not isinstance(data, dict):
         return
+
+    market = data["market"]
+    symbol = data["symbol"]
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    buy_price = float(data.get("buy_price", 0))
+
     cursor = conn.cursor()
+
+    # 如果当前价格为0，查找最近的非零记录
+    if buy_price <= 0:
+        cursor.execute(
+            "SELECT price, time FROM gold_prices "
+            "WHERE market = ? AND symbol = ? AND price > 0 "
+            "ORDER BY time DESC LIMIT 1",
+            (market, symbol),
+        )
+        result = cursor.fetchone()
+        if not result:
+            return  # 无历史有效数据，跳过保存
+        buy_price = result[0]  # 使用最近的非零价格
+
+    # 检查是否存在完全相同的记录（价格和时间均相同）
+    cursor.execute(
+        "SELECT id FROM gold_prices "
+        "WHERE market = ? AND symbol = ? AND price = ? AND time = ?",
+        (market, symbol, buy_price, current_time),
+    )
+    if cursor.fetchone():
+        return  # 已存在相同记录，跳过插入
+
+    # 插入新记录
     cursor.execute(
         "INSERT INTO gold_prices (price, unit, time, market, symbol) VALUES (?, ?, ?, ?, ?)",
-        (
-            data["buy_price"],  # 买入价格
-            "元/克",  # 单位
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # 当前时间
-            data["market"],  # 市场名称
-            data["symbol"],  # 品种符号
-        ),
+        (buy_price, "元/克", current_time, market, symbol),
     )
     conn.commit()
 
@@ -130,7 +154,20 @@ def get_history_data(conn, market, days):
             end.strftime("%Y-%m-%d 23:59:59"),  # 结束时间格式化
         ),
     )
-    return cursor.fetchall()
+    raw_data = cursor.fetchall()
+
+    # 动态处理0值：用前一个有效值填充
+    processed_data = []
+    last_valid_price = None
+    for price, timestamp in raw_data:
+        if price > 0:
+            last_valid_price = price
+            processed_data.append((price, timestamp))
+        elif last_valid_price is not None:
+            processed_data.append((last_valid_price, timestamp))
+        # 忽略初始连续0值（无有效数据时）
+
+    return processed_data
 
 
 def generate_chart(data_dict, filename, days):

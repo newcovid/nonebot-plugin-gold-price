@@ -3,6 +3,8 @@ import asyncio
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib import font_manager
+from os import path as os_path
 from nonebot import on_command, get_bot, require
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
@@ -172,8 +174,11 @@ def get_history_data(conn, market, days):
 
 def generate_chart(data_dict, filename, days):
     """生成黄金价格走势图"""
-    # 设置字体和图形参数
-    plt.rcParams["font.sans-serif"] = ["MiSans"]
+
+    # 设置用户自定义字体
+    set_chart_font(plugin_config.gold_chart_font)
+
+    # 设置图表字体和样式
     plt.rcParams["axes.unicode_minus"] = False
     plt.figure(figsize=(12, 6))
 
@@ -304,6 +309,52 @@ async def send_price_report(conn, sh_data, lf_data, bot: Bot, days, group_id=Non
             await bot.send_group_msg(
                 group_id=group_id, message=MessageSegment.text(alert)
             )
+
+
+def set_chart_font(font_conf):
+    """设置图表字体，增强跨平台兼容性"""
+    # 定义跨平台中文字体候选列表
+    font_candidates = [
+        "WenQuanYi Micro Hei",  # Linux 常见字体
+        "Noto Sans CJK SC",  # Linux/部分 Windows
+        "Microsoft YaHei",  # Windows 默认
+        "SimHei",  # Windows 备用
+        "sans-serif",  # 最终回退
+    ]
+
+    if font_conf or font_conf == "":
+        # 用户自定义字体逻辑（原有代码）
+        if os_path.isfile(font_conf):
+            try:
+                font_prop = font_manager.FontProperties(fname=font_conf)
+                plt.rcParams["font.sans-serif"] = [font_prop.get_name()]
+                return
+            except Exception as e:
+                pass
+        else:
+            try:
+                font_path = font_manager.findfont(font_conf)
+                font_prop = font_manager.FontProperties(fname=font_path)
+                plt.rcParams["font.sans-serif"] = [font_prop.get_name()]
+                return
+            except:
+                pass
+
+    # 未配置字体时，按候选列表尝试加载
+    for font_name in font_candidates:
+        try:
+            # 强制查找字体文件路径，避免缓存问题
+            font_path = font_manager.findfont(font_name, fallback_to_default=False)
+            font_prop = font_manager.FontProperties(fname=font_path)
+            plt.rcParams["font.sans-serif"] = [font_prop.get_name()]
+            print(f"成功加载字体: {font_name}")
+            return
+        except Exception as e:
+            continue
+
+    # 所有候选均失败时，强制设置回退方案
+    plt.rcParams["font.sans-serif"] = ["sans-serif"]
+    plt.rcParams["axes.unicode_minus"] = False
 
 
 @gold_price_cmd.handle()

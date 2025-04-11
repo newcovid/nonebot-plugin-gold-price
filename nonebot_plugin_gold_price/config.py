@@ -14,6 +14,10 @@ class GoldPriceConfig(BaseModel):
     gold_default_days: int = Field(default=30, description="默认查询天数")
     gold_schedule_hour: int = Field(default=18, description="定时任务的小时")
     gold_schedule_minute: int = Field(default=30, description="定时任务的分钟")
+    gold_chart_font: str = Field(
+        default="",
+        description="图表字体配置，支持系统字体名称或字体文件绝对路径（如：'Microsoft YaHei' 或 '/fonts/myfont.ttf'）",
+    )
 
 
 plugin_config = get_plugin_config(GoldPriceConfig)

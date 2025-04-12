@@ -175,12 +175,11 @@ def get_history_data(conn, market, days):
 def generate_chart(data_dict, filename, days):
     """生成黄金价格走势图"""
 
-    # 设置用户自定义字体
     set_chart_font(plugin_config.gold_chart_font)
-
-    # 设置图表字体和样式
     plt.rcParams["axes.unicode_minus"] = False
-    plt.figure(figsize=(12, 6))
+
+    fig = plt.figure(figsize=(12, 6))
+    ax = fig.add_subplot(111)
 
     all_times = []
     for market_name, (prices, timestamps) in data_dict.items():
@@ -212,7 +211,7 @@ def generate_chart(data_dict, filename, days):
         if not prices:
             continue
         times = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S") for ts in timestamps]
-        plt.plot(
+        ax.plot(
             times,
             prices,
             marker="o",
@@ -222,13 +221,24 @@ def generate_chart(data_dict, filename, days):
             label=market_name,
         )
 
-    plt.title(f"黄金价格走势对比（近{actual_days}天）", fontsize=14)
-    plt.xlabel("日期", fontsize=12)
-    plt.ylabel("价格（元/克）", fontsize=12)
-    plt.grid(True, alpha=0.3)
-    plt.legend(loc="upper left")
+    font_path = plugin_config.gold_chart_font
+    if os_path.isfile(font_path):
+        font_prop = font_manager.FontProperties(fname=font_path)
+    else:
+        try:
+            font_prop = font_manager.FontProperties(family="sans-serif")
+        except:
+            font_prop = None
 
-    ax = plt.gca()
+    ax.set_title(
+        f"黄金价格走势对比（近{actual_days}天）", fontsize=14, fontproperties=font_prop
+    )
+    ax.set_xlabel("日期", fontsize=12, fontproperties=font_prop)
+    ax.set_ylabel("价格（元/克）", fontsize=12, fontproperties=font_prop)
+
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="upper left", prop=font_prop)
+
     ax.set_xlim(min_time, max_time)
 
     if num_dates > 0:
@@ -252,6 +262,7 @@ def generate_chart(data_dict, filename, days):
     ax.xaxis.set_major_formatter(date_fmt)
     plt.gcf().autofmt_xdate(rotation=45, ha="right")
     plt.tight_layout()
+
     plt.savefig(filename, dpi=300, bbox_inches="tight")
     plt.close()
 
@@ -313,6 +324,11 @@ async def send_price_report(conn, sh_data, lf_data, bot: Bot, days, group_id=Non
 
 def set_chart_font(font_conf):
     """设置图表字体，增强跨平台兼容性"""
+    # 重置字体设置
+    plt.rcParams["font.family"] = ["sans-serif"]
+    plt.rcParams["font.sans-serif"] = []
+    plt.rcParams["axes.unicode_minus"] = False
+
     # 定义跨平台中文字体候选列表
     font_candidates = [
         "WenQuanYi Micro Hei",  # Linux 常见字体
@@ -322,12 +338,15 @@ def set_chart_font(font_conf):
         "sans-serif",  # 最终回退
     ]
 
-    if font_conf or font_conf == "":
-        # 用户自定义字体逻辑（原有代码）
+    if font_conf and font_conf != "":
+        # 用户自定义字体逻辑
         if os_path.isfile(font_conf):
             try:
                 font_prop = font_manager.FontProperties(fname=font_conf)
-                plt.rcParams["font.sans-serif"] = [font_prop.get_name()]
+                font_name = font_prop.get_name()
+                plt.rcParams["font.sans-serif"] = [font_name]
+                # 确保字体设置生效
+                plt.rcParams["font.family"] = ["sans-serif"]
                 return
             except Exception as e:
                 pass
@@ -335,9 +354,12 @@ def set_chart_font(font_conf):
             try:
                 font_path = font_manager.findfont(font_conf)
                 font_prop = font_manager.FontProperties(fname=font_path)
-                plt.rcParams["font.sans-serif"] = [font_prop.get_name()]
+                font_name = font_prop.get_name()
+                plt.rcParams["font.sans-serif"] = [font_name]
+                # 确保字体设置生效
+                plt.rcParams["font.family"] = ["sans-serif"]
                 return
-            except:
+            except Exception as e:
                 pass
 
     # 未配置字体时，按候选列表尝试加载
@@ -347,13 +369,15 @@ def set_chart_font(font_conf):
             font_path = font_manager.findfont(font_name, fallback_to_default=False)
             font_prop = font_manager.FontProperties(fname=font_path)
             plt.rcParams["font.sans-serif"] = [font_prop.get_name()]
-            print(f"成功加载字体: {font_name}")
+            # 确保字体设置生效
+            plt.rcParams["font.family"] = ["sans-serif"]
             return
         except Exception as e:
             continue
 
     # 所有候选均失败时，强制设置回退方案
     plt.rcParams["font.sans-serif"] = ["sans-serif"]
+    plt.rcParams["font.family"] = ["sans-serif"]
     plt.rcParams["axes.unicode_minus"] = False
 
 

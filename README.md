@@ -98,3 +98,12 @@ Tips: 别忘了命令前缀,图中没有前缀是因为我使用了空前缀,如
 ![image1](https://github.com/newcovid/nonebot-plugin-gold-price/blob/master/images/rendering_1.png)
 ![image2](https://github.com/newcovid/nonebot-plugin-gold-price/blob/master/images/rendering_2.png)
 
+## 更新计划
+- [ ] 增加"补充历史数据"的功能([#1](https://github.com/newcovid/nonebot-plugin-gold-price/issues/1))
+## 更新日志
+### 0.1.9
+- 修复配置错误的BUG([#1](https://github.com/newcovid/nonebot-plugin-gold-price/issues/1))
+### 0.1.8
+- 增加自定义渲染字体功能
+### 0.1.7
+- API返回0价格时使用上次非零数据,可能在节假日发生

@@ -10,6 +10,7 @@ from nonebot.adapters import Message
 from nonebot.params import CommandArg
 from nonebot.plugin import PluginMetadata
 import aiohttp
+import base64
 
 require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_localstore")  # 声明依赖
@@ -305,8 +306,10 @@ async def send_price_report(conn, sh_data, lf_data, bot: Bot, days, group_id=Non
             group_id=group_id, message=MessageSegment.text(final_msg)
         )
         if chart_data:
+            with open(chart_path, "rb") as f:
+                img_base64 = base64.b64encode(f.read()).decode()
             await bot.send_group_msg(
-                group_id=group_id, message=MessageSegment.image(f"file:///{chart_path}")
+                group_id=group_id, message=MessageSegment.image(f"base64://{img_base64}")
             )
 
     if isinstance(sh_data, dict):
@@ -494,9 +497,11 @@ async def daily_report():
 
                 # 发送图表
                 if generate_chart_data:
+                    with open(chart_path, "rb") as f:
+                        img_base64 = base64.b64encode(f.read()).decode()
                     await bot.send_group_msg(
                         group_id=group_id,
-                        message=MessageSegment.image(f"file:///{chart_path}"),
+                        message=MessageSegment.image(f"base64://{img_base64}"),
                     )
 
                 # 发送预警

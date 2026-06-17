@@ -1,5 +1,8 @@
 import sqlite3
 import asyncio
+import base64
+import io
+import re
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -10,7 +13,6 @@ from nonebot.adapters import Message
 from nonebot.params import CommandArg
 from nonebot.plugin import PluginMetadata
 import aiohttp
-import base64
 
 require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_localstore")  # 声明依赖
@@ -75,8 +77,9 @@ async def fetch_market_data(market: str):
         # 等待指定的间隔时间
     try:
         params = {"token": plugin_config.gold_api_token, "market": market}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(API_URL, params=params, timeout=10) as response:
+        timeout = aiohttp.ClientTimeout(total=10)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(API_URL, params=params) as response:
                 data = await response.json()
 
         if data.get("code") != 200:
@@ -173,8 +176,8 @@ def get_history_data(conn, market, days):
     return processed_data
 
 
-def generate_chart(data_dict, filename, days):
-    """生成黄金价格走势图"""
+def generate_chart(data_dict, days) -> bytes:
+    """生成黄金价格走势图，直接返回 PNG 字节，不落盘"""
 
     set_chart_font(plugin_config.gold_chart_font)
     plt.rcParams["axes.unicode_minus"] = False
@@ -264,8 +267,10 @@ def generate_chart(data_dict, filename, days):
     plt.gcf().autofmt_xdate(rotation=45, ha="right")
     plt.tight_layout()
 
-    plt.savefig(filename, dpi=300, bbox_inches="tight")
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", dpi=300, bbox_inches="tight")
     plt.close()
+    return buf.getvalue()
 
 
 async def send_price_report(conn, sh_data, lf_data, bot: Bot, days, group_id=None):
@@ -283,9 +288,7 @@ async def send_price_report(conn, sh_data, lf_data, bot: Bot, days, group_id=Non
             prices, timestamps = zip(*history)
             chart_data[market_name] = (prices, timestamps)
 
-    chart_path = str(store.get_plugin_cache_file("gold_chart.png"))
-    if chart_data:
-        generate_chart(chart_data, chart_path, days)
+    chart_bytes = generate_chart(chart_data, days) if chart_data else None
 
     msg_segments = []
     for market_name, data in valid_data.items():
@@ -305,9 +308,8 @@ async def send_price_report(conn, sh_data, lf_data, bot: Bot, days, group_id=Non
         await bot.send_group_msg(
             group_id=group_id, message=MessageSegment.text(final_msg)
         )
-        if chart_data:
-            with open(chart_path, "rb") as f:
-                img_base64 = base64.b64encode(f.read()).decode()
+        if chart_bytes:
+            img_base64 = base64.b64encode(chart_bytes).decode()
             await bot.send_group_msg(
                 group_id=group_id, message=MessageSegment.image(f"base64://{img_base64}")
             )
@@ -393,8 +395,6 @@ async def handle_query(event: GroupMessageEvent, args: Message = CommandArg()):
     days = plugin_config.gold_default_days
 
     if arg:
-        import re
-
         match = re.match(r"^\s*(\d+\.?\d*)\s*(天|年)\s*$", arg)
         if match:
             num = float(match.group(1))
@@ -454,8 +454,6 @@ async def daily_report():
 
         # 只在有有效数据时进行推送
         if valid_data:
-            # 生成统一消息内容
-            chart_path = str(store.get_plugin_cache_file("gold_chart.png"))
             days = plugin_config.gold_default_days
             generate_chart_data = {}
 
@@ -469,8 +467,11 @@ async def daily_report():
                     prices, timestamps = zip(*history)
                     generate_chart_data[market_name] = (prices, timestamps)
 
-            if generate_chart_data:
-                generate_chart(generate_chart_data, chart_path, days)
+            chart_bytes = (
+                generate_chart(generate_chart_data, days)
+                if generate_chart_data
+                else None
+            )
 
             # 构建统一消息
             msg_segments = []
@@ -496,9 +497,8 @@ async def daily_report():
                 )
 
                 # 发送图表
-                if generate_chart_data:
-                    with open(chart_path, "rb") as f:
-                        img_base64 = base64.b64encode(f.read()).decode()
+                if chart_bytes:
+                    img_base64 = base64.b64encode(chart_bytes).decode()
                     await bot.send_group_msg(
                         group_id=group_id,
                         message=MessageSegment.image(f"base64://{img_base64}"),

@@ -101,6 +101,10 @@ Tips: 别忘了命令前缀,图中没有前缀是因为我使用了空前缀,如
 ## 更新计划
 - [ ] 增加"补充历史数据"的功能([#1](https://github.com/newcovid/nonebot-plugin-gold-price/issues/1))
 ## 更新日志
+### 0.2.0
+- 修复跨主机部署时图片落盘后协议端无法读取的问题，改为完全在内存中生成图表并通过 base64 直接发送
+- 升级 aiohttp 超时配置为 `ClientTimeout`，避免后续版本的弃用警告
+- 代码清理：将 `re` 模块的导入提到文件顶部
 ### 0.1.9
 - 修复配置错误的BUG([#1](https://github.com/newcovid/nonebot-plugin-gold-price/issues/1))
 ### 0.1.8

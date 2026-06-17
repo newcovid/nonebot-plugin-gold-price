@@ -101,6 +101,14 @@ Tips: 别忘了命令前缀,图中没有前缀是因为我使用了空前缀,如
 ## 更新计划
 - [ ] 增加"补充历史数据"的功能([#1](https://github.com/newcovid/nonebot-plugin-gold-price/issues/1))
 ## 更新日志
+### 0.3.0
+- 图表绘制改用 `matplotlib.figure.Figure` + `FigureCanvasAgg`，彻底脱离 `pyplot` 全局状态，命令查询与定时任务并发触发时不再有竞态
+- 现代化图表样式：双色（靛蓝 / 琥珀）折线、上/右 spine 去除、横向轻量网格、关键点（最新价 / 最高 / 最低）自动标注、折线下渐变填充
+- 字体处理改为返回 `FontProperties` 注入到各个绘图调用，不再污染 `rcParams`
+- 抽取 `_dispatch_report` 等辅助函数，消除 `send_price_report` 与 `daily_report` 的重复流程
+- `get_bot()` 改为 `_safe_get_bot()`：bot 未连接时记录日志而非抛栈，定时任务对单群推送失败做异常隔离
+- 接入 `nonebot.log.logger` 替代静默 `pass`，关键路径的失败可见
+- 补充类型注解、统一市场名称映射 `MARKET_DISPLAY`
 ### 0.2.0
 - 修复跨主机部署时图片落盘后协议端无法读取的问题，改为完全在内存中生成图表并通过 base64 直接发送
 - 升级 aiohttp 超时配置为 `ClientTimeout`，避免后续版本的弃用警告
